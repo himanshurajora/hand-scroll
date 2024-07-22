@@ -1,0 +1,36 @@
+{
+  "name": "hand-scroll",
+  "version": "0.0.1",
+  "description": "Scroll anything on your desktop using your hands",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "tsc && electron .",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/himanshurajora/hand-scroll.git"
+  },
+  "keywords": [
+    "ml5",
+    "scroll",
+    "hands",
+    "machine-learning",
+    "automation"
+  ],
+  "author": "Himanshu Jangid @himanshurajora",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/himanshurajora/hand-scroll/issues"
+  },
+  "homepage": "https://github.com/himanshurajora/hand-scroll#readme",
+  "devDependencies": {
+    "electron": "^31.2.1",
+    "typescript": "^5.5.3"
+  },
+  "dependencies": {
+    "electron-builder": "^24.13.3",
+    "robotjs": "^0.6.0"
+  }
+}
