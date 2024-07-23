@@ -1,26 +1,60 @@
-import { app, BrowserWindow, ipcMain, Result } from "electron";
+import { app, BrowserWindow, nativeImage, ipcMain, Tray, Menu } from "electron";
 import { HandPosResult } from "./types";
 import { scrollMouse } from "robotjs";
+import * as path from "path";
+import isDev from "electron-is-dev";
+
+const iconPath = isDev
+  ? "./assets/icons/logo.png"
+  : path.join(__dirname, `../assets/icons/logo.png}`);
+
 const createWindow = () => {
+  console.log({ iconPath });
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 100,
+    height: 100,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
+      backgroundThrottling: false,
     },
+    // NOTE: comment out the line below to see the window
+    show: false,
   });
 
   win.loadFile("index.html");
 
   let ses = win.webContents.session;
   ses.setPermissionRequestHandler((webContents, permission, callback) => {
-    callback(true);
+    if (permission === "media") return callback(true);
   });
 };
 
 app.whenReady().then(() => {
   createWindow();
+
+  const icon = nativeImage.createFromPath(iconPath);
+  const tray = new Tray(icon);
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Toggle scrolling",
+      type: "normal",
+      toolTip: "Toggle scrolling",
+      click: () => {
+        isScrollingDisabled = !isScrollingDisabled;
+      },
+    },
+    {
+      label: "Quit",
+      type: "normal",
+      click: () => {
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setToolTip("Hand Scroll");
+  tray.setContextMenu(contextMenu);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -34,12 +68,11 @@ app.on("window-all-closed", () => {
 ipcMain.on("ready", () => {
   console.log("ready");
 });
-
 let isWristStable = false;
 let wristLastPos = { x: 0, y: 0 };
 
 // index finger diff between mcp and tip between last 500 miliseconds
-const FINGER_THRESHOLD = 20;
+const FINGER_THRESHOLD = 5;
 
 let indexFingerLastPos = { x: 0, y: 0 };
 let middleFingerLastPos = { x: 0, y: 0 };
@@ -64,11 +97,8 @@ ipcMain.on("hands", (event, args: HandPosResult[]) => {
   const diffX = Math.abs(wristLastPos.x - wristPos.x);
   const diffY = Math.abs(wristLastPos.y - wristPos.y);
 
-  if (diffX < WRIST_STABLE_THRESHOLD && diffY < WRIST_STABLE_THRESHOLD) {
-    isWristStable = true;
-  } else {
-    isWristStable = false;
-  }
+  isWristStable =
+    diffX < WRIST_STABLE_THRESHOLD && diffY < WRIST_STABLE_THRESHOLD;
 
   wristLastPos = wristPos;
 
@@ -88,16 +118,18 @@ ipcMain.on("hands", (event, args: HandPosResult[]) => {
     return;
   }
 
-  if (!isScrollingDisabled && isWristStable && now - lastCheckedAt > 100) {
-    if (
-      Math.abs(indexFingerTipPos.y - indexFingerLastPos.y) > FINGER_THRESHOLD
-    ) {
+  if (!isScrollingDisabled && isWristStable && now - lastCheckedAt > 20) {
+    const indexFingerDiffY = Math.abs(
+      indexFingerTipPos.y - indexFingerLastPos.y
+    );
+    const middleFingerDiffY = Math.abs(
+      middleFingerTipPos.y - middleFingerLastPos.y
+    );
+
+    if (indexFingerDiffY > FINGER_THRESHOLD) {
       scrollUp = true;
       scrollDown = false;
-    }
-    if (
-      Math.abs(middleFingerTipPos.y - middleFingerLastPos.y) > FINGER_THRESHOLD
-    ) {
+    } else if (middleFingerDiffY > FINGER_THRESHOLD) {
       scrollDown = true;
       scrollUp = false;
     }
@@ -108,11 +140,11 @@ ipcMain.on("hands", (event, args: HandPosResult[]) => {
     }
 
     if (scrollUp) {
-      scrollMouse(0, 3);
+      scrollMouse(0, 1.8);
     }
 
     if (scrollDown) {
-      scrollMouse(0, -3);
+      scrollMouse(0, -1.8);
     }
 
     scrollUp = false;
